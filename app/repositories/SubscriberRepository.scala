@@ -1,5 +1,7 @@
 package repositories
 
+import java.sql.ResultSet
+
 import core.SqlClient
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
@@ -12,16 +14,17 @@ import scala.util.{Failure, Success}
 class SubscriberRepository @Inject()(sqlClient: SqlClient)
                                     (implicit ec: ExecutionContext) {
 
-    def insertSubscriber(githubSubscriber: GithubSubscriber): Future[Boolean] = {
-        val promise = Promise[Boolean]()
+    def insertSubscriber(githubSubscriber: GithubSubscriber): Future[Long] = {
+        val promise = Promise[Long]()
         sqlClient.execute("insert into subscriber set `username`=?, `repository`=?, `token`=?;",
-            List(githubSubscriber.username, githubSubscriber.repository, githubSubscriber.token)) onComplete {
-            case Success(updateCount) =>
-                promise.success(updateCount != 0)
-            case Failure(err) =>
-                Logger.error(s"error while inserting subscriber: $githubSubscriber")
-                promise.failure(err)
-        }
+            List(githubSubscriber.username, githubSubscriber.repository, githubSubscriber.token), { id: Long =>
+                Logger.info("subscriber inserted")
+                promise.success(id)
+            }) recover {
+                case err =>
+                    Logger.error(s"error while inserting subscriber: $githubSubscriber")
+                    promise.failure(err)
+            }
         promise.future
     }
 
@@ -54,7 +57,7 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
     def getSubscriber(username: String, repo: String): Future[GithubSubscriber] = {
         val promise = Promise[GithubSubscriber]()
         sqlClient.execute("select * from subscriber where `username`=? and `repository`=?;",
-            List(username, repo), { subscribers =>
+            List(username, repo), { subscribers: ResultSet =>
                 if(!subscribers.next()) {
                     promise.success(null)
                 } else {

@@ -11,18 +11,18 @@ import scala.util.{Failure, Success}
 @Singleton
 class PushRepository @Inject()(sqlClient: SqlClient)
                               (implicit ec: ExecutionContext) {
-    def insertPush(githubPush: GithubPush): Future[Int] = {
-        val promise = Promise[Int]()
+    def insertPush(githubPush: GithubPush): Future[Long] = {
+        val promise = Promise[Long]()
         sqlClient.execute("insert into push set `pusher`=?, `commit_count`=?, `status`=?, `subscriber_id`=?;",
             List(githubPush.pusher, githubPush.commitCount.toString,
-                InProgress.string(), githubPush.subscriberId.toString), { res =>
-            res.next()
-            promise.success(res.getInt("id"))
-        }) recover {
+                InProgress.string(), githubPush.subscriberId.toString), { id: Long =>
+                Logger.info("push inserted")
+                promise.success(id)
+            }) recover {
             case err =>
                 Logger.error(s"error while inserting push data: $githubPush")
                 promise.failure(err)
-        }
+            }
         promise.future
     }
 

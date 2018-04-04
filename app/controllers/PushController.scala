@@ -30,7 +30,8 @@ class PushController @Inject()(cc: ControllerComponents,
                             pushService.processPush(PushRequest(id, parsedEvent.get)).map { _ =>
                                 Logger.info("successfully handled push event")
                                 Ok("successfully handled push event")
-                            } recover { case _ =>
+                            } recover { case err =>
+                                Logger.error(s"push controller finished with error: $err")
                                 BadRequest("process push failed")
                             }
                         case None => Future.successful(BadRequest("could not parse github event body"))

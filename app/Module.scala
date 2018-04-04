@@ -1,7 +1,8 @@
 import com.google.inject.AbstractModule
-import java.time.Clock
 
-///import services.{AtomicCounter, Counter, PushService}
+import core.{RequestBuilder, SqlClient}
+import repositories.{PushRepository, SubscriberRepository}
+import services.{PushService, SubscribeService}
 
 /**
   * This class is a Guice module that tells Guice how to bind several
@@ -16,17 +17,12 @@ import java.time.Clock
 class Module extends AbstractModule {
 
     override def configure(): Unit = {
-        //bind(classOf[PushService]).asEagerSingleton()
-
-        // Use the system clock as the default implementation of Clock
-        bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
-        // Ask Guice to create an instance of ApplicationTimer when the
-        // application starts.
-
-        // TODO add singleton modules as this
-        // bind(classOf[ApplicationTimer]).asEagerSingleton()
-        // Set AtomicCounter as the implementation for Counter.
-        // bind(classOf[Counter]).to(classOf[AtomicCounter])
+        bind(classOf[RequestBuilder]).asEagerSingleton()
+        bind(classOf[SqlClient]).asEagerSingleton()
+        bind(classOf[PushRepository]).asEagerSingleton()
+        bind(classOf[SubscriberRepository]).asEagerSingleton()
+        bind(classOf[PushService]).asEagerSingleton()
+        bind(classOf[SubscribeService]).asEagerSingleton()
     }
 
 }

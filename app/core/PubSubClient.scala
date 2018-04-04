@@ -22,28 +22,25 @@ class PubSubClient {
         val publisher = Publisher
             .newBuilder(TopicName.of(projectId, topicName))
             .build()
-        val data = ByteString.copyFromUtf8(message)
-        val apiFuture = publisher.publish(PubsubMessage
-            .newBuilder()
-            .setData(data)
-            .build())
-        ApiFutures.addCallback(apiFuture, callback(publisher, promise, topicName))
-        promise.future
-    }
+        try {
+            val apiFuture = publisher.publish(PubsubMessage
+                .newBuilder()
+                .setData(ByteString.copyFromUtf8(message))
+                .build())
 
-    private def callback(publisher: Publisher, promise: Promise[String], topicName: String) = {
-        new ApiFutureCallback[String]() {
-            override def onFailure(t: Throwable): Unit = {
-                val err = s"error while publishing to pubsub, topic: $topicName"
-                Logger.error(err)
-                publisher.shutdown()
-                promise.failure(PubSubException(err, t))
-            }
-
-            override def onSuccess(result: String): Unit = {
-                publisher.shutdown()
-                promise.success(result)
-            }
+            ApiFutures.addCallback(apiFuture, new ApiFutureCallback[String] {
+                override def onFailure(t: Throwable): Unit = {
+                    Logger.error(s"publish error $t")
+                    promise.failure(PubSubException(s"error while publishing to pubsub, topic: $topicName", t))
+                }
+                override def onSuccess(result: String): Unit = {
+                    promise.success(result)
+                }
+            })
+        } finally {
+            publisher.shutdown()
         }
+
+        promise.future
     }
 }

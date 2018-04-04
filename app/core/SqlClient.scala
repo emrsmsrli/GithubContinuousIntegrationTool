@@ -64,11 +64,11 @@ object SqlClient {
 
         val head :: tail = vals
 
-        Try { head.toInt } match {
-            case Success(_) =>
-                escape(sql.replaceFirst("\\?", head), tail)
-            case Failure(_) =>
-                escape(sql.replaceFirst("\\?", s"'$head'"), tail)
-        }
+        escape(sql.replaceFirst("\\?",
+            Try { head.toInt } match {
+                case Success(_) => head
+                case Failure(_) => s"'$head'"
+            }
+        ), tail)
     }
 }

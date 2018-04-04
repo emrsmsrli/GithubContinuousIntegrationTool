@@ -16,19 +16,16 @@ case class SqlClientException(msg: String, cause: Throwable)
 class SqlClient @Inject()(dbApi: DBApi)(implicit ec: ExecutionContext) {
     private lazy val db = dbApi.database("default")
 
-    def execute(sql: String, vals: List[String], f: ResultSet => Unit = null): Future[Int] =
-        execute(SqlClient.escape(sql, vals), f)
+    def execute(sql: String, vals: List[String])(f: ResultSet => Unit = null): Future[Int] =
+        execute(SqlClient.escape(sql, vals))(f)
 
-    def execute(sql: String, vals: List[String], f: Long => Unit): Future[Int] =
-        execute(SqlClient.escape(sql, vals), f)
-
-    def execute(sql: String, f: ResultSet => Unit): Future[Int] = {
+    def execute(sql: String)(f: ResultSet => Unit): Future[Int] = {
         val p = Promise[Int]()
         Future(db.withConnection { implicit conn =>
             val statement = conn.createStatement()
             statement.execute(sql)
             val results = statement.getResultSet
-            if(results != null)
+            if(f != null && results != null)
                 f(results)
             p.success(statement.getUpdateCount)
         }) recover { case e =>
@@ -39,7 +36,10 @@ class SqlClient @Inject()(dbApi: DBApi)(implicit ec: ExecutionContext) {
         p.future
     }
 
-    def execute(sql: String, f: Long => Unit): Future[Int] = {
+    def executeInsert(sql: String, vals: List[String])(f: Long => Unit = null): Future[Int] =
+        executeInsert(SqlClient.escape(sql, vals))(f)
+
+    def executeInsert(sql: String)(f: Long => Unit): Future[Int] = {
         val p = Promise[Int]()
         Future(db.withConnection { implicit conn =>
             val statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)

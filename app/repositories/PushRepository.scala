@@ -13,12 +13,12 @@ class PushRepository @Inject()(sqlClient: SqlClient)
                               (implicit ec: ExecutionContext) {
     def insertPush(githubPush: GithubPush): Future[Long] = {
         val promise = Promise[Long]()
-        sqlClient.execute("insert into push set `pusher`=?, `commit_count`=?, `status`=?, `subscriber_id`=?;",
+        sqlClient.executeInsert("insert into push set `pusher`=?, `commit_count`=?, `status`=?, `subscriber_id`=?;",
             List(githubPush.pusher, githubPush.commitCount.toString,
-                InProgress.string(), githubPush.subscriberId.toString), { id: Long =>
+                InProgress.string(), githubPush.subscriberId.toString)) { id =>
                 Logger.info("push inserted")
                 promise.success(id)
-            }) recover {
+            } recover {
             case err =>
                 Logger.error(s"error while inserting push data: $githubPush")
                 promise.failure(err)
@@ -30,7 +30,7 @@ class PushRepository @Inject()(sqlClient: SqlClient)
         val promise = Promise[Boolean]()
         sqlClient.execute("update push set `zip_url`=?, `status`=?, `subscriber_id`=? where `id`=? and `status`=?;",
             List(githubPush.zip_url, Done.string(), githubPush.subscriberId.toString,
-                githubPush.id.toString, InProgress.string())) onComplete {
+                githubPush.id.toString, InProgress.string()))() onComplete {
             case Success(res) =>
                 promise.success(res != 0)
             case Failure(err) =>

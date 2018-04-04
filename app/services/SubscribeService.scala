@@ -36,8 +36,8 @@ class SubscribeService @Inject()(subscriberRepository: SubscriberRepository,
                     subscriberRepository.insertSubscriber(subscriber)
                 }
             }
-            .flatMap { inserted =>
-                if(inserted)
+            .flatMap { insertId =>
+                if(insertId != 0)
                     subscriberRepository.getSubscriber(githubSubscriberRegister.username,
                         githubSubscriberRegister.repository)
                 else

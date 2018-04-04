@@ -16,11 +16,11 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
 
     def insertSubscriber(githubSubscriber: GithubSubscriber): Future[Long] = {
         val promise = Promise[Long]()
-        sqlClient.execute("insert into subscriber set `username`=?, `repository`=?, `token`=?;",
-            List(githubSubscriber.username, githubSubscriber.repository, githubSubscriber.token), { id: Long =>
+        sqlClient.executeInsert("insert into subscriber set `username`=?, `repository`=?, `token`=?;",
+            List(githubSubscriber.username, githubSubscriber.repository, githubSubscriber.token)) { id =>
                 Logger.info("subscriber inserted")
                 promise.success(id)
-            }) recover {
+            } recover {
                 case err =>
                     Logger.error(s"error while inserting subscriber: $githubSubscriber")
                     promise.failure(err)
@@ -31,7 +31,7 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
     def updateSubscriber(githubSubscriber: GithubSubscriber): Future[Boolean] = {
         val promise = Promise[Boolean]()
         sqlClient.execute("update subscriber set `webhook_url`=? where `username`=? and `repository`=?;",
-            List(githubSubscriber.webhookUrl, githubSubscriber.username, githubSubscriber.repository)) onComplete {
+            List(githubSubscriber.webhookUrl, githubSubscriber.username, githubSubscriber.repository))() onComplete {
             case Success(updateCount) =>
                 promise.success(updateCount != 0)
             case Failure(err) =>
@@ -44,7 +44,7 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
     def deleteSubscriber(githubSubscriber: GithubSubscriber): Future[Boolean] = {
         val promise = Promise[Boolean]()
         sqlClient.execute("delete subscriber where `username`=? and `repository`=?;",
-            List(githubSubscriber.username, githubSubscriber.repository)) onComplete {
+            List(githubSubscriber.username, githubSubscriber.repository))() onComplete {
             case Success(updateCount) =>
                 promise.success(updateCount != 0)
             case Failure(err) =>
@@ -57,7 +57,7 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
     def getSubscriber(username: String, repo: String): Future[GithubSubscriber] = {
         val promise = Promise[GithubSubscriber]()
         sqlClient.execute("select * from subscriber where `username`=? and `repository`=?;",
-            List(username, repo), { subscribers: ResultSet =>
+            List(username, repo)) { subscribers: ResultSet =>
                 if(!subscribers.next()) {
                     promise.success(null)
                 } else {
@@ -68,7 +68,7 @@ class SubscriberRepository @Inject()(sqlClient: SqlClient)
                         subscribers.getString("webhook_url"),
                         subscribers.getInt("id")))
                 }
-            }) recover {
+            } recover {
             case err =>
                 Logger.error(s"error while retrieving subscriber username: $username, repo: $repo")
                 promise.failure(err)

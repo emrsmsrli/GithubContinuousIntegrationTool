@@ -11,7 +11,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 case class PubSubException(msg: String, cause: Throwable)
     extends RuntimeException(msg, cause)
@@ -45,10 +45,10 @@ class PubSubClient @Inject()(appLifecycle: ApplicationLifecycle)
                 .setData(ByteString.copyFromUtf8(message))
                 .build())
                 .get(3, TimeUnit.SECONDS)
-        } recover {
+        } recoverWith {
             case t: Throwable =>
                 Logger.error(s"publish error $t")
-                throw PubSubException(s"error while publishing to pubsub, topic: $topicName", t)
+                Future.failed(PubSubException(s"error while publishing to pubsub, topic: $topicName", t))
         }
     }
 }

@@ -30,7 +30,7 @@ class PushRepository @Inject()(database: Database)
                   update push set `zip_url`={zipUrl}, `status`={status}, `subscriber_id`={subsId}
                   where `id`={id} and `status`={statusBeforeUpdate}
             """.on('zipUrl -> githubPush.zipUrl, 'status -> githubPush.status,
-                    'subsId -> githubPush.subscriberId, 'id -> githubPush.id, 'statusBeforeUpdate -> "DONE")
+                    'subsId -> githubPush.subscriberId, 'id -> githubPush.id, 'statusBeforeUpdate -> "INPROGRESS")
                 .execute()
         }
     }

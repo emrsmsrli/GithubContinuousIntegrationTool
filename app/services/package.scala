@@ -4,7 +4,6 @@ package object services {
         s"https://api.github.com/repos/$username/$repository/hooks"
     }
 
-    // TODO fix this
-    def formatPubSubUrl(subscriberId: Int)
+    def formatPubSubUrl(subscriberId: Long)
         = s"https://us-central1-linovi-188707.cloudfunctions.net/github-webhook/push/$subscriberId"
 }

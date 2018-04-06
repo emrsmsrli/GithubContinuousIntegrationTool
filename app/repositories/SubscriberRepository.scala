@@ -1,79 +1,65 @@
 package repositories
 
-import java.sql.ResultSet
-
-import core.SqlClient
+import core.Database
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
+import anorm._
 import repositories.models.GithubSubscriber
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.Future
 
 @Singleton
-class SubscriberRepository @Inject()(sqlClient: SqlClient)
-                                    (implicit ec: ExecutionContext) {
+class SubscriberRepository @Inject()(database: Database) {
+    def insertSubscriber(subscriber: GithubSubscriber): Future[Option[Long]] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"inserting subscriber $subscriber")
+            SQL"insert into subscriber(username, repository, token) values({un}, {repo}, {token})"
+                .on('un -> subscriber.username, 'repo -> subscriber.repository, 'token -> subscriber.token)
+                .executeInsert()
+        }
+    }
 
-    def insertSubscriber(githubSubscriber: GithubSubscriber): Future[Long] = {
-        val promise = Promise[Long]()
-        sqlClient.executeInsert("insert into subscriber set `username`=?, `repository`=?, `token`=?;",
-            List(githubSubscriber.username, githubSubscriber.repository, githubSubscriber.token)) { id =>
-                Logger.info("subscriber inserted")
-                promise.success(id)
-            } recover {
-                case err =>
-                    Logger.error(s"error while inserting subscriber: $githubSubscriber")
-                    promise.failure(err)
+    def updateSubscriber(subscriber: GithubSubscriber): Future[Boolean] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"updating subscriber $subscriber")
+            SQL"update subscriber set `webhook_url`={wh_url} where `username`={un} and `repository`={repo}"
+                .on('wh_url -> subscriber.webhookUrl, 'un -> subscriber.username, 'repo -> subscriber.repository)
+                .execute()
+        }
+    }
+
+    def deleteSubscriber(subscriber: GithubSubscriber): Future[Boolean] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"deleting subscriber $subscriber")
+            SQL"delete subscriber where `username`={un} and `repository`={repo}"
+                .on('un -> subscriber.username, 'repo -> subscriber.repository)
+                .execute()
+        }
+    }
+
+    def getSubscriber(username: String, repo: String): Future[Option[GithubSubscriber]] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"trying to retrieve subscriber $username and $repo")
+            val result: SqlQueryResult = SQL"select * from subscriber where `username`={un} and `repository`={repo}"
+                .on('un -> username, 'repo -> repo)
+                .executeQuery()
+            result.resultSet.acquireFor { resultSet =>
+                GithubSubscriber(
+                    resultSet.getString("username"),
+                    resultSet.getString("repository"),
+                    resultSet.getString("token"),
+                    resultSet.getString("webhook_url"),
+                    resultSet.getInt("id")
+                )
+            }.either match {
+                case Left(errors) =>
+                    Logger.debug(s"could not find subscriber, ${errors.addString(new StringBuilder(),
+                        "errors: [", ", ", "]")}")
+                    None
+                case Right(subscriber) =>
+                    Logger.debug("found subscriber")
+                    Some(subscriber)
             }
-        promise.future
-    }
-
-    def updateSubscriber(githubSubscriber: GithubSubscriber): Future[Boolean] = {
-        val promise = Promise[Boolean]()
-        sqlClient.execute("update subscriber set `webhook_url`=? where `username`=? and `repository`=?;",
-            List(githubSubscriber.webhookUrl, githubSubscriber.username, githubSubscriber.repository))() onComplete {
-            case Success(updateCount) =>
-                promise.success(updateCount != 0)
-            case Failure(err) =>
-                Logger.error(s"error while updating subscriber: $githubSubscriber")
-                promise.failure(err)
         }
-        promise.future
     }
-
-    def deleteSubscriber(githubSubscriber: GithubSubscriber): Future[Boolean] = {
-        val promise = Promise[Boolean]()
-        sqlClient.execute("delete subscriber where `username`=? and `repository`=?;",
-            List(githubSubscriber.username, githubSubscriber.repository))() onComplete {
-            case Success(updateCount) =>
-                promise.success(updateCount != 0)
-            case Failure(err) =>
-                Logger.error(s"error while deleting subscriber: $githubSubscriber")
-                promise.failure(err)
-        }
-        promise.future
-    }
-
-    def getSubscriber(username: String, repo: String): Future[GithubSubscriber] = {
-        val promise = Promise[GithubSubscriber]()
-        sqlClient.execute("select * from subscriber where `username`=? and `repository`=?;",
-            List(username, repo)) { subscribers: ResultSet =>
-                if(!subscribers.next()) {
-                    promise.success(null)
-                } else {
-                    promise.success(GithubSubscriber(
-                        subscribers.getString("username"),
-                        subscribers.getString("repository"),
-                        subscribers.getString("token"),
-                        subscribers.getString("webhook_url"),
-                        subscribers.getInt("id")))
-                }
-            } recover {
-            case err =>
-                Logger.error(s"error while retrieving subscriber username: $username, repo: $repo")
-                promise.failure(err)
-        }
-        promise.future
-    }
-
 }

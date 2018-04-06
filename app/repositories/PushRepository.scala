@@ -1,42 +1,37 @@
 package repositories
 
-import core.SqlClient
+import core.Database
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import repositories.models.{Done, GithubPush, InProgress}
+import repositories.models.GithubPush
+import anorm._
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PushRepository @Inject()(sqlClient: SqlClient)
+class PushRepository @Inject()(database: Database)
                               (implicit ec: ExecutionContext) {
-    def insertPush(githubPush: GithubPush): Future[Long] = {
-        val promise = Promise[Long]()
-        sqlClient.executeInsert("insert into push set `pusher`=?, `commit_count`=?, `status`=?, `subscriber_id`=?;",
-            List(githubPush.pusher, githubPush.commitCount.toString,
-                InProgress.string(), githubPush.subscriberId.toString)) { id =>
-                Logger.info("push inserted")
-                promise.success(id)
-            } recover {
-            case err =>
-                Logger.error(s"error while inserting push data: $githubPush")
-                promise.failure(err)
-            }
-        promise.future
+    def insertPush(githubPush: GithubPush): Future[Option[Long]] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"inserting push $githubPush")
+            SQL"""
+                  insert into push(pusher, commit_count, status, subscriber_id)
+                  values({pusher}, {cCount}, {status}, {subsId})
+            """.on('pusher -> githubPush.pusher, 'cCount -> githubPush.commitCount,
+                    'status -> githubPush.status, 'subsId -> githubPush.subscriberId)
+                .executeInsert()
+        }
     }
 
     def updatePush(githubPush: GithubPush): Future[Boolean] = {
-        val promise = Promise[Boolean]()
-        sqlClient.execute("update push set `zip_url`=?, `status`=?, `subscriber_id`=? where `id`=? and `status`=?;",
-            List(githubPush.zip_url, Done.string(), githubPush.subscriberId.toString,
-                githubPush.id.toString, InProgress.string()))() onComplete {
-            case Success(res) =>
-                promise.success(res != 0)
-            case Failure(err) =>
-                Logger.error(s"error while updating push data: $githubPush")
-                promise.failure(err)
+        database.withConnection { implicit c =>
+            Logger.debug(s"updating push $githubPush")
+            SQL"""
+                  update push set `zip_url`={zipUrl}, `status`={status}, `subscriber_id`={subsId}
+                  where `id`={id} and `status`={statusBeforeUpdate}
+            """.on('zipUrl -> githubPush.zipUrl, 'status -> githubPush.status,
+                    'subsId -> githubPush.subscriberId, 'id -> githubPush.id, 'statusBeforeUpdate -> "DONE")
+                .execute()
         }
-        promise.future
     }
 }

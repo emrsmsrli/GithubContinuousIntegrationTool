@@ -1,6 +1,6 @@
 import com.google.inject.AbstractModule
 
-import core.{RequestBuilder, SqlClient}
+import core.Database
 import repositories.{PushRepository, SubscriberRepository}
 import services.{PushService, SubscribeService}
 
@@ -17,12 +17,10 @@ import services.{PushService, SubscribeService}
 class Module extends AbstractModule {
 
     override def configure(): Unit = {
-        bind(classOf[RequestBuilder]).asEagerSingleton()
-        bind(classOf[SqlClient]).asEagerSingleton()
+        bind(classOf[Database]).asEagerSingleton()
         bind(classOf[PushRepository]).asEagerSingleton()
         bind(classOf[SubscriberRepository]).asEagerSingleton()
         bind(classOf[PushService]).asEagerSingleton()
         bind(classOf[SubscribeService]).asEagerSingleton()
     }
-
 }

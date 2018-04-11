@@ -19,8 +19,7 @@ class PushService @Inject()(pushRepository: PushRepository,
         createPush(request)
             .flatMap { id: Long =>
                 Logger.info(s"publishing subId: ${request.subscriberId}, pushId: $id")
-                val message = createPushPubSubMessage(request.subscriberId, id)
-                publishToPubSub(message)
+                publishToPubSub(createPushPubSubMessage(request.subscriberId, id))
             } recoverWith {
             case e: Throwable =>
                 Logger.error(s"error while publishing $request")

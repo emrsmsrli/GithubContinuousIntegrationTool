@@ -19,7 +19,7 @@ case class PubSubException(msg: String, cause: Throwable)
 @Singleton
 class PubSubClient @Inject()(appLifecycle: ApplicationLifecycle)
                             (implicit gcd: GCloudDispatcher) {
-    private val projectId = ServiceOptions.getDefaultProjectId
+    private lazy val projectId = ServiceOptions.getDefaultProjectId
     private val publishers = scala.collection.mutable.Map[String, Publisher]()
 
     appLifecycle.addStopHook { () =>

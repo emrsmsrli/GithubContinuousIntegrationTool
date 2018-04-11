@@ -29,10 +29,8 @@ class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberReposit
         Logger.debug(s"checking if subscriber already exists: $subscriber")
         subscriberRepository.getSubscriber(subscriber.username, subscriber.repository) map {
             case Some(_) =>
-                Logger.debug("subscriber found")
                 true
             case None =>
-                Logger.debug("subscriber not found")
                 false
         }
     }
@@ -70,7 +68,9 @@ class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberReposit
     }
 
     private def deleteSubscriberIfError(subscriber: GithubSubscriber): Future[Boolean] = {
-        subscriberRepository.deleteSubscriber(subscriber) recoverWith {
+        subscriberRepository.deleteSubscriber(subscriber) flatMap { _ =>
+            Future.failed(new RuntimeException("clean up complete"))
+        } recoverWith {
             case error =>
                 val err = s"error while cleaning up subscriber $error"
                 Logger.error(err)

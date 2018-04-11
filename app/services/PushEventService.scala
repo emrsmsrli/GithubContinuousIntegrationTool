@@ -18,7 +18,7 @@ class PushEventService @Inject()(pushRepository: PushRepository,
     def processPush(request: PushRequest): Future[String] = {
         createPush(request)
             .flatMap { id: Long =>
-                Logger.info(s"publishing subId: ${request.subscriberId}, pushId: $id")
+                Logger.debug(s"publishing subId: ${request.subscriberId}, pushId: $id")
                 publishToPubSub(createPushPubSubMessage(request.subscriberId, id))
             } recoverWith {
             case e: Throwable =>

@@ -23,8 +23,8 @@ class PushRepository @Inject()(database: Database)
     def updatePush(githubPush: GithubPush): Future[Boolean] = {
         database.withConnection { implicit c =>
             Logger.debug(s"updating push $githubPush")
-            SQL"update push set `zip_url`=${githubPush.zipUrl}, `status`=${githubPush.status}, `subscriber_id`=${
-                githubPush.subscriberId} where `id`=${githubPush.id} and `status`='INPROGRESS'"
+            SQL"update push set `zip_url`=${githubPush.zipUrl}, `status`=${githubPush.status} where `subscriber_id`=${
+                githubPush.subscriberId} and `id`=${githubPush.id} and `status`='INPROGRESS'"
                 .execute()
         }
     }

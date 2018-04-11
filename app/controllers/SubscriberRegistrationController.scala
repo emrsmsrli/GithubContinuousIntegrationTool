@@ -10,8 +10,8 @@ import services.SubscribeService
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SubscriberController @Inject()(cc: ControllerComponents, subscribeService: SubscribeService)
-                                    (implicit ec: ExecutionContext) extends AbstractController(cc) {
+class SubscriberRegistrationController @Inject()(cc: ControllerComponents, subscribeService: SubscribeService)
+                                                (implicit ec: ExecutionContext) extends AbstractController(cc) {
     def subscribe() : Action[GithubSubscriber] = Action.async(parse.json(implicitGs)) { req =>
         Logger.info("subscribe action captured")
         subscribeService.subscribe(req.body).map { _ =>

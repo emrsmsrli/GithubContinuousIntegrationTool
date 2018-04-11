@@ -1,7 +1,7 @@
 
 # routing
-POST    /push           controllers.PushController.missingId
-POST    /push/:id       controllers.PushController.processPush(id: Int)
+POST    /push           controllers.PushEventReceiverController.missingId
+POST    /push/:id       controllers.PushEventReceiverController.processPush(id: Int)
 
-POST    /subscribe      controllers.SubscriberController.subscribe()
-POST    /subscribe/     controllers.SubscriberController.subscribe()
+POST    /subscribe      controllers.SubscriberRegistrationController.subscribe()
+POST    /subscribe/     controllers.SubscriberRegistrationController.subscribe()

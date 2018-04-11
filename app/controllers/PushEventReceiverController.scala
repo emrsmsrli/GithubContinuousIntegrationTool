@@ -11,8 +11,8 @@ import utils.Implicits.gpr
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PushController @Inject()(cc: ControllerComponents,
-                               pushService: PushService)(implicit ex: ExecutionContext)
+class PushEventReceiverController @Inject()(cc: ControllerComponents,
+                                            pushService: PushService)(implicit ex: ExecutionContext)
     extends AbstractController(cc) {
 
     def processPush(id: Long): Action[AnyContent] = Action.async { req =>

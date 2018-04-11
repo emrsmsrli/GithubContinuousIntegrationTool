@@ -1,10 +1,10 @@
 
 # routing
-POST    /push           controllers.PushEventReceiverController.missingId
-POST    /push/:id       controllers.PushEventReceiverController.processPush(id: Int)
+POST    /push                           controllers.PushEventReceiverController.missingId
+POST    /push/:id                       controllers.PushEventReceiverController.processPush(id: Int)
 
-POST    /subscribe      controllers.SubscriberRegistrationController.subscribe
-POST    /subscribe/     controllers.SubscriberRegistrationController.subscribe
+POST    /subscribe                      controllers.SubscriberRegistrationController.subscribe
+POST    /subscribe/                     controllers.SubscriberRegistrationController.subscribe
 
 GET     /google3ac3553bfe0d3b2b.html    controllers.PubSubReceiverController.verificationHtml
 POST    /pubsubMessage                  controllers.PubSubReceiverController.receiveMessage

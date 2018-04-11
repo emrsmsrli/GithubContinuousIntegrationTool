@@ -1,7 +1,5 @@
 package core
 
-import java.util.concurrent.TimeUnit
-
 import com.google.cloud.pubsub.v1.Publisher
 import com.google.cloud.ServiceOptions
 import com.google.protobuf.ByteString
@@ -44,7 +42,7 @@ class PubSubClient @Inject()(appLifecycle: ApplicationLifecycle)
                 .newBuilder()
                 .setData(ByteString.copyFromUtf8(message))
                 .build())
-                .get(3, TimeUnit.SECONDS)
+                .get()
         } recoverWith {
             case t: Throwable =>
                 Logger.error(s"publish error $t")

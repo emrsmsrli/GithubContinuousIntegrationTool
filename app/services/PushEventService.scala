@@ -14,7 +14,8 @@ case class PushRequest(subscriberId: Long, data: PushEvent)
 
 @Singleton
 class PushEventService @Inject()(pushRepository: PushRepository,
-                                 pubSubClient: PubSubClient)(implicit ex: ExecutionContext) {
+                                 pubSubClient: PubSubClient)
+                                (implicit ex: ExecutionContext) {
     def processPush(request: PushRequest): Future[String] = {
         createPush(request)
             .flatMap { id: Long =>

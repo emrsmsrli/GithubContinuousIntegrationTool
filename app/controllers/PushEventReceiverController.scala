@@ -12,9 +12,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PushEventReceiverController @Inject()(cc: ControllerComponents,
-                                            pushEventService: PushEventService)(implicit ex: ExecutionContext)
-    extends AbstractController(cc) {
-
+                                            pushEventService: PushEventService)
+                                           (implicit ex: ExecutionContext) extends AbstractController(cc) {
     def processPush(id: Long): Action[AnyContent] = Action.async { req =>
         Logger.debug(s"subscriber id is $id")
 

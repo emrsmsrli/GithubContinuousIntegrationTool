@@ -31,7 +31,7 @@ class SubscriberRepository @Inject()(database: Database) {
     def deleteSubscriber(subscriber: GithubSubscriber): Future[Boolean] = {
         database.withConnection { implicit c =>
             Logger.debug(s"deleting subscriber $subscriber")
-            SQL"delete subscriber where `username`=${subscriber.username} and `repository`=${subscriber.repository}"
+            SQL"delete from subscriber where `username`=${subscriber.username} and `repository`=${subscriber.repository}"
                 .execute()
         }
     }
@@ -42,6 +42,7 @@ class SubscriberRepository @Inject()(database: Database) {
             val result: SqlQueryResult = SQL"select * from subscriber where `username`=$username and `repository`=$repo"
                 .executeQuery()
             result.resultSet.acquireFor { resultSet =>
+                resultSet.first()
                 GithubSubscriber(
                     resultSet.getString("username"),
                     resultSet.getString("repository"),

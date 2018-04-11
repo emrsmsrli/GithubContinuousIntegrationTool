@@ -5,5 +5,5 @@ package object services {
     }
 
     def formatPubSubUrl(subscriberId: Long)
-        = s"https://us-central1-linovi-188707.cloudfunctions.net/github-webhook/push/$subscriberId"
+        = s"https://f9146eee.ngrok.io/push/$subscriberId"
 }

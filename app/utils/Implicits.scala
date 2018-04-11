@@ -2,8 +2,7 @@ package utils
 
 import controllers.cases._
 import play.api.libs.json.{Json, Reads}
-import repositories.models.GithubSubscriber
-import services.{GithubErrorResponse, GithubHookResponse}
+import services.{GithubErrorResponse, GithubHookResponse, SubscriberPushIds}
 
 object Implicits {
     implicit val gpcr: Reads[PushEventCommit] = Json.reads[PushEventCommit]
@@ -14,8 +13,9 @@ object Implicits {
 
     implicit val implicitGer: Reads[GithubErrorResponse] = Json.reads[GithubErrorResponse]
     implicit val implicitGhr: Reads[GithubHookResponse] = Json.reads[GithubHookResponse]
-    implicit val implicitGs: Reads[GithubSubscriber] = Json.reads[GithubSubscriber]
 
     implicit val implicitPsem: Reads[PubSubEventMessage] = Json.reads[PubSubEventMessage]
     implicit val implicitPse: Reads[PubSubEvent] = Json.reads[PubSubEvent]
+
+    implicit val implicitSpids: Reads[SubscriberPushIds] = Json.reads[SubscriberPushIds]
 }

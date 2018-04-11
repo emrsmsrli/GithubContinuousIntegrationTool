@@ -16,15 +16,15 @@ class PushEventReceiverController @Inject()(cc: ControllerComponents,
     extends AbstractController(cc) {
 
     def processPush(id: Long): Action[AnyContent] = Action.async { req =>
-        Logger.info(s"subscriber id is $id")
+        Logger.debug(s"subscriber id is $id")
 
         req.headers.get("X-Github-Event") match {
             case Some(eventType) => eventType match {
                 case event if event == "ping" =>
-                    Logger.info("ping event received")
+                    Logger.debug("ping event received")
                     Future.successful(Ok("ping event received"))
                 case event if event == "push" =>
-                    Logger.info("push event received")
+                    Logger.debug("push event received")
                     parsePushEvent(req.body) match {
                         case Some(parsedEvent) => processPushEvent(id, parsedEvent)
                         case None => Future.successful(BadRequest("could not parse github event body"))

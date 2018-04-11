@@ -15,7 +15,7 @@ class SubscriberRegistrationController @Inject()(cc: ControllerComponents,
                                                  subscribeRegisterService: SubscribeRegisterService)
                                                 (implicit ec: ExecutionContext) extends AbstractController(cc) {
     def subscribe() : Action[SubscriberRegister] = Action.async(parse.json(implicitSr)) { req =>
-        Logger.info("subscribe action captured")
+        Logger.debug("subscribe action captured")
         val subscriberRegister = req.body
         subscribeRegisterService.subscribe(GithubSubscriber(subscriberRegister.username, subscriberRegister.repository, subscriberRegister.token)).map { _ =>
             Logger.info("successfully subscribed")

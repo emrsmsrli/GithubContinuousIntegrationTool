@@ -8,9 +8,9 @@ import repositories.models.GithubSubscriber
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubscribeService @Inject()(subscriberRepository: SubscriberRepository,
-                                 githubService: GithubService)
-                                (implicit ec: ExecutionContext) {
+class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberRepository,
+                                         githubRequestsService: GithubRequestsService)
+                                        (implicit ec: ExecutionContext) {
     def subscribe(subscriber: GithubSubscriber): Future[Boolean] = {
         checkSubscriberAlreadyExists(subscriber).flatMap { doesExist: Boolean =>
             createSubscriberIfNotExists(subscriber, doesExist)
@@ -51,7 +51,7 @@ class SubscribeService @Inject()(subscriberRepository: SubscriberRepository,
             : Future[Option[GithubHookResponse]] = {
         maybeInsertId match {
             case Some(insertId) =>
-                githubService.registerWebhook(subscriber.copy(id = insertId))
+                githubRequestsService.registerWebhook(subscriber.copy(id = insertId))
             case None =>
                 val err = "could not insert subscriber"
                 Logger.error(err)

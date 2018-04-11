@@ -5,14 +5,14 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc._
-import services.{PushRequest, PushService}
+import services.{PushRequest, PushEventService}
 import utils.Implicits.gpr
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PushEventReceiverController @Inject()(cc: ControllerComponents,
-                                            pushService: PushService)(implicit ex: ExecutionContext)
+                                            pushEventService: PushEventService)(implicit ex: ExecutionContext)
     extends AbstractController(cc) {
 
     def processPush(id: Long): Action[AnyContent] = Action.async { req =>
@@ -46,7 +46,7 @@ class PushEventReceiverController @Inject()(cc: ControllerComponents,
     }
 
     private def processPushEvent(id: Long, pushEvent: PushEvent): Future[Result] = {
-        pushService.processPush(PushRequest(id, pushEvent)).map { _ =>
+        pushEventService.processPush(PushRequest(id, pushEvent)).map { _ =>
             Logger.info("successfully handled push event")
             Ok("successfully handled push event")
         } recover { case err: Throwable =>

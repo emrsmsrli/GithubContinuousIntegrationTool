@@ -16,8 +16,8 @@ case class GithubHookResponse(id: Int, url: String)
 case class GithubErrorResponse(message: String)
 
 @Singleton
-class GithubService @Inject()(ws: WSClient)
-                             (implicit nd: NetworkDispatcher) {
+class GithubRequestsService @Inject()(ws: WSClient)
+                                     (implicit nd: NetworkDispatcher) {
     def registerWebhook(subscriber: GithubSubscriber) : Future[Option[GithubHookResponse]] = {
 
         Logger.debug("registering webhook to github")

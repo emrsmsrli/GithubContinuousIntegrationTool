@@ -2,7 +2,7 @@ import com.google.inject.AbstractModule
 
 import core.Database
 import repositories.{PushRepository, SubscriberRepository}
-import services.{PushService, SubscribeService}
+import services.{PushEventService, SubscribeRegisterService}
 
 /**
   * This class is a Guice module that tells Guice how to bind several
@@ -20,7 +20,7 @@ class Module extends AbstractModule {
         bind(classOf[Database]).asEagerSingleton()
         bind(classOf[PushRepository]).asEagerSingleton()
         bind(classOf[SubscriberRepository]).asEagerSingleton()
-        bind(classOf[PushService]).asEagerSingleton()
-        bind(classOf[SubscribeService]).asEagerSingleton()
+        bind(classOf[PushEventService]).asEagerSingleton()
+        bind(classOf[SubscribeRegisterService]).asEagerSingleton()
     }
 }

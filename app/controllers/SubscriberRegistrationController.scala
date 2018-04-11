@@ -5,16 +5,17 @@ import play.api.mvc.{AbstractController, Action, ControllerComponents}
 import utils.Implicits.implicitGs
 import play.api.Logger
 import repositories.models.GithubSubscriber
-import services.SubscribeService
+import services.SubscribeRegisterService
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class SubscriberRegistrationController @Inject()(cc: ControllerComponents, subscribeService: SubscribeService)
+class SubscriberRegistrationController @Inject()(cc: ControllerComponents,
+                                                 subscribeRegisterService: SubscribeRegisterService)
                                                 (implicit ec: ExecutionContext) extends AbstractController(cc) {
     def subscribe() : Action[GithubSubscriber] = Action.async(parse.json(implicitGs)) { req =>
         Logger.info("subscribe action captured")
-        subscribeService.subscribe(req.body).map { _ =>
+        subscribeRegisterService.subscribe(req.body).map { _ =>
             Logger.info("successfully subscribed")
             Ok(s"successfully subscribed to ${req.body.repository} for ${req.body.username}")
         } recover {

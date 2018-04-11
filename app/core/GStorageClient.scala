@@ -28,9 +28,7 @@ class GStorageClient @Inject()(implicit gcd: GCloudDispatcher) {
         }
         Future {
             storage.create(blobInfo, data)
-            // TODO fix return link `https://storage.googleapis.com/${this.bucketName}/${path.basename(p)}`;
-            Logger.info(blobInfo.getSelfLink + bucketName + fileName)
-            blobInfo.getSelfLink + bucketName + fileName
+            s"https://storage.googleapis.com/$bucketName/$fileName"
         }.recoverWith {
             case t: Throwable =>
                 Logger.error(s"gcloud storage upload error filename: $fileName, bucket: $bucketName, $t")

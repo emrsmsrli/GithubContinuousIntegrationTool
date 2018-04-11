@@ -36,29 +36,38 @@ class SubscriberRepository @Inject()(database: Database) {
         }
     }
 
+    def getSubscriber(id: Long): Future[Option[GithubSubscriber]] = {
+        database.withConnection { implicit c =>
+            Logger.debug(s"trying to retrieve subscriber $id")
+            getSubscriber(SQL"select * from subscriber where `id`=$id")
+        }
+    }
+
     def getSubscriber(username: String, repo: String): Future[Option[GithubSubscriber]] = {
         database.withConnection { implicit c =>
             Logger.debug(s"trying to retrieve subscriber $username and $repo")
-            val result: SqlQueryResult = SQL"select * from subscriber where `username`=$username and `repository`=$repo"
-                .executeQuery()
-            result.resultSet.acquireFor { resultSet =>
-                resultSet.first()
-                GithubSubscriber(
-                    resultSet.getString("username"),
-                    resultSet.getString("repository"),
-                    resultSet.getString("token"),
-                    resultSet.getString("webhook_url"),
-                    resultSet.getInt("id")
-                )
-            }.either match {
-                case Left(errors) =>
-                    Logger.debug(s"could not find subscriber, ${errors.addString(new StringBuilder(),
-                        "errors: [", ", ", "]")}")
-                    None
-                case Right(subscriber) =>
-                    Logger.debug("found subscriber")
-                    Some(subscriber)
-            }
+            getSubscriber(SQL"select * from subscriber where `username`=$username and `repository`=$repo")
+        }
+    }
+
+    private def getSubscriber(sql: SimpleSql[Row]) = {
+        val result: SqlQueryResult = sql.executeQuery()
+        result.resultSet.acquireFor { resultSet =>
+            resultSet.first()
+            GithubSubscriber(
+                resultSet.getString("username"),
+                resultSet.getString("repository"),
+                resultSet.getString("token"),
+                resultSet.getString("webhook_url"),
+                resultSet.getInt("id")
+            )
+        }.either match {
+            case Left(errors) =>
+                Logger.debug(s"could not find subscriber, ${errors.mkString(",")}")
+                None
+            case Right(subscriber) =>
+                Logger.debug("found subscriber")
+                Some(subscriber)
         }
     }
 }

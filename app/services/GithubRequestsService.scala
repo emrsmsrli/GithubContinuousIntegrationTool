@@ -19,7 +19,6 @@ case class GithubErrorResponse(message: String)
 class GithubRequestsService @Inject()(ws: WSClient)
                                      (implicit nd: NetworkDispatcher) {
     def registerWebhook(subscriber: GithubSubscriber) : Future[Option[GithubHookResponse]] = {
-
         Logger.debug("registering webhook to github")
         val data = Json.obj(
             "name" -> "web",
@@ -44,11 +43,21 @@ class GithubRequestsService @Inject()(ws: WSClient)
                             case success: JsSuccess[GithubErrorResponse] =>
                                 Logger.error(s"webhook register unsuccessful: ${success.get.message}")
                             case failure: JsError =>
-                                Logger.error(s"github error respons parsing failed: ${failure.errors
-                                    .addString(new StringBuilder())}")
+                                Logger.error(s"github error respons parsing failed: ${failure.errors.mkString(",")}")
                         }
                         None
                 }
+            }
+    }
+
+    def downloadZipBall(subscriber: GithubSubscriber): Future[Array[Byte]] = {
+        Logger.debug(s"downloading zip from ${subscriber.username}/${subscriber.repository}")
+        ws.url(formatGithubZipballUrl(subscriber.username, subscriber.repository))
+            .withFollowRedirects(true)
+            .addHttpHeaders("Authorization" -> s"token ${subscriber.token}")
+            .get()
+            .map { response: WSResponse =>
+                response.bodyAsBytes.toByteBuffer.array()
             }
     }
 }

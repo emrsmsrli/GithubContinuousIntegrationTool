@@ -14,11 +14,8 @@ class PushRepository @Inject()(database: Database)
     def insertPush(githubPush: GithubPush): Future[Option[Long]] = {
         database.withConnection { implicit c =>
             Logger.debug(s"inserting push $githubPush")
-            SQL"""
-                  insert into push(pusher, commit_count, status, subscriber_id)
-                  values({pusher}, {cCount}, {status}, {subsId})
-            """.on('pusher -> githubPush.pusher, 'cCount -> githubPush.commitCount,
-                    'status -> githubPush.status, 'subsId -> githubPush.subscriberId)
+            SQL"insert into push(pusher, commit_count, status, subscriber_id) values(${
+                githubPush.pusher}, ${githubPush.commitCount}, ${githubPush.status}, ${githubPush.subscriberId})"
                 .executeInsert()
         }
     }
@@ -26,11 +23,8 @@ class PushRepository @Inject()(database: Database)
     def updatePush(githubPush: GithubPush): Future[Boolean] = {
         database.withConnection { implicit c =>
             Logger.debug(s"updating push $githubPush")
-            SQL"""
-                  update push set `zip_url`={zipUrl}, `status`={status}, `subscriber_id`={subsId}
-                  where `id`={id} and `status`={statusBeforeUpdate}
-            """.on('zipUrl -> githubPush.zipUrl, 'status -> githubPush.status,
-                    'subsId -> githubPush.subscriberId, 'id -> githubPush.id, 'statusBeforeUpdate -> "INPROGRESS")
+            SQL"update push set `zip_url`=${githubPush.zipUrl}, `status`=${githubPush.status}, `subscriber_id`=${
+                githubPush.subscriberId} where `id`=${githubPush.id} and `status`='INPROGRESS'"
                 .execute()
         }
     }

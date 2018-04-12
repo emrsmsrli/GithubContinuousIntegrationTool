@@ -4,8 +4,12 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import repositories.SubscriberRepository
 import repositories.models.GithubSubscriber
+import utils.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
+
+case class SubscribeRegisterException(msg: String, t: Throwable)
+    extends Exception(msg, t)
 
 @Singleton
 class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberRepository,
@@ -19,30 +23,28 @@ class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberReposit
         }.flatMap { maybeResponse: Option[GithubHookResponse] =>
             updateSubscriberIfRegistered(subscriber, maybeResponse)
         } recoverWith {
-            case error: Throwable =>
-                Logger.error(s"error occurred while subscribing $error")
-                deleteSubscriberIfError(subscriber)
+            case t: Throwable =>
+                Logger.error(s"error occurred while subscribing $t")
+                deleteSubscriberIfError(subscriber, t)
         }
     }
 
     private def checkSubscriberAlreadyExists(subscriber: GithubSubscriber): Future[Boolean] = {
         Logger.debug(s"checking if subscriber already exists: $subscriber")
         subscriberRepository.getSubscriber(subscriber.username, subscriber.repository) map {
-            case Some(_) =>
-                true
-            case None =>
-                false
+            case Some(_) => true
+            case None => false
         }
     }
 
-    private def createSubscriberIfNotExists(subscriber: GithubSubscriber, doesExist: Boolean): Future[Option[Long]] = {
+    private def createSubscriberIfNotExists(subscriber: GithubSubscriber,
+                                            doesExist: Boolean): Future[Option[Long]] = {
         if(!doesExist) {
-            subscriberRepository.insertSubscriber(subscriber)
-        } else {
             val err = "subscriber already exists"
             Logger.error(err)
-            Future.failed(new RuntimeException(err))
+            throw SubscribeRegisterException(err, null)
         }
+        subscriberRepository.insertSubscriber(subscriber)
     }
 
     private def registerWebhookIfCreated(subscriber: GithubSubscriber, maybeInsertId: Option[Long])
@@ -53,28 +55,29 @@ class SubscribeRegisterService @Inject()(subscriberRepository: SubscriberReposit
             case None =>
                 val err = "could not insert subscriber"
                 Logger.error(err)
-                Future.failed(new RuntimeException(err))
+                throw SubscribeRegisterException(err, null)
         }
     }
 
-    private def updateSubscriberIfRegistered(subscriber: GithubSubscriber, maybeResponse: Option[GithubHookResponse])
-            : Future[Boolean] = {
+    private def updateSubscriberIfRegistered(subscriber: GithubSubscriber,
+                                             maybeResponse: Option[GithubHookResponse]): Future[Boolean] = {
         maybeResponse match {
             case Some(subscribed) =>
                 subscriberRepository.updateSubscriber(subscriber.copy(webhookUrl = subscribed.url))
             case None =>
-                Future.failed(new RuntimeException("could not register webhook"))
+                throw SubscribeRegisterException("could not register webhook", null)
         }
     }
 
-    private def deleteSubscriberIfError(subscriber: GithubSubscriber): Future[Boolean] = {
+    private def deleteSubscriberIfError(subscriber: GithubSubscriber,
+                                        t: Throwable): Future[Boolean] = {
         subscriberRepository.deleteSubscriber(subscriber) flatMap { _ =>
-            Future.failed(new RuntimeException("clean up complete"))
+            throw SubscribeRegisterException("clean up complete", t)
         } recoverWith {
             case error =>
                 val err = s"error while cleaning up subscriber $error"
                 Logger.error(err)
-                Future.failed(new RuntimeException(err))
+                throw SubscribeRegisterException(err, t)
         }
     }
 }

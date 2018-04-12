@@ -12,13 +12,14 @@ import repositories.models.{GithubPush, GithubSubscriber}
 import scala.concurrent.{ExecutionContext, Future}
 
 case class SubscriberPushIds(subscriberId: Long, pushId: Long)
+case class PubSubEventException(msg: String) extends Exception(msg)
 
 @Singleton
 class PubSubEventHandlerService @Inject()(subscriberRepository: SubscriberRepository,
                                           pushRepository: PushRepository,
                                           gStorageClient: GStorageClient,
                                           githubRequestsService: GithubRequestsService)
-                                         (implicit ex: ExecutionContext) {
+                                         (implicit ec: ExecutionContext) {
     def processEvent(event: String)(implicit spir: Reads[SubscriberPushIds]): Future[Unit] = {
         Logger.debug(s"processing event $event")
 
@@ -38,7 +39,7 @@ class PubSubEventHandlerService @Inject()(subscriberRepository: SubscriberReposi
                 idData.get
             case err: JsError =>
                 Logger.error(s"process event parse json failed: ${err.errors.mkString(",")}")
-                throw new Exception(s"process event parse json failed: ${err.errors.mkString(",")}")
+                throw PubSubEventException(s"process event parse json failed: ${err.errors.mkString(",")}")
         }
     }
 
@@ -47,7 +48,7 @@ class PubSubEventHandlerService @Inject()(subscriberRepository: SubscriberReposi
             case Some(subscriber) => subscriber
             case None =>
                 Logger.error("subscriber info not retrieved")
-                throw new Exception("subscriber info not retrieved")
+                throw PubSubEventException("subscriber info not retrieved")
         }
     }
 

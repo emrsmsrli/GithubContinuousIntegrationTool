@@ -10,15 +10,16 @@ import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 
 import scala.concurrent.Future
+import scala.collection.mutable.{Map => MutableMap}
 
-case class PubSubException(msg: String, cause: Throwable)
-    extends RuntimeException(msg, cause)
+case class PubSubException(msg: String, t: Throwable)
+    extends Exception(msg, t)
 
 @Singleton
 class PubSubClient @Inject()(appLifecycle: ApplicationLifecycle)
                             (implicit gcd: GCloudDispatcher) {
     private val projectId = ServiceOptions.getDefaultProjectId
-    private val publishers = scala.collection.mutable.Map[String, Publisher]()
+    private val publishers = MutableMap[String, Publisher]()
 
     appLifecycle.addStopHook { () =>
         Future.successful(
@@ -45,8 +46,8 @@ class PubSubClient @Inject()(appLifecycle: ApplicationLifecycle)
                 .get()
         } recoverWith {
             case t: Throwable =>
-                Logger.error(s"publish error $t")
-                Future.failed(PubSubException(s"error while publishing to pubsub, topic: $topicName", t))
+                Logger.error(s"error while publishing to pubsub, topic: $topicName, t: $t")
+                throw PubSubException("publish error", t)
         }
     }
 }

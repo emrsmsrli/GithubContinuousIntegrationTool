@@ -6,14 +6,15 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 
 import scala.concurrent.Future
+import scala.collection.mutable.{Map => MutableMap}
 
-case class GStorageException(msg: String, cause: Throwable)
-    extends RuntimeException(msg, cause)
+case class GStorageException(msg: String, t: Throwable)
+    extends Exception(msg, t)
 
 @Singleton
 class GStorageClient @Inject()(implicit gcd: GCloudDispatcher) {
     private val storage = StorageOptions.getDefaultInstance.getService
-    private val blobInfos = scala.collection.mutable.Map[String, BlobInfo]()
+    private val blobInfos = MutableMap[String, BlobInfo]()
 
     def upload(fileName: String, bucketName: String, data: Array[Byte]): Future[String] = {
         val blobMapKey = s"$bucketName/$fileName"
@@ -29,10 +30,10 @@ class GStorageClient @Inject()(implicit gcd: GCloudDispatcher) {
         Future {
             storage.create(blobInfo, data)
             s"https://storage.googleapis.com/$bucketName/$fileName"
-        }.recoverWith {
+        } recoverWith {
             case t: Throwable =>
                 Logger.error(s"gcloud storage upload error filename: $fileName, bucket: $bucketName, $t")
-                Future.failed(GStorageException("error while uploading to gcloud storage", t))
+                throw GStorageException("error while uploading to gcloud storage", t)
         }
     }
 }

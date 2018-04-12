@@ -6,19 +6,18 @@ import javax.inject.Singleton
 import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSResponse}
-import utils.Implicits.{implicitGer, implicitGhr}
 import repositories.models.GithubSubscriber
 
 import scala.concurrent.Future
 
 case class GithubHookResponse(id: Int, url: String)
-
-case class GithubErrorResponse(message: String)
+case class GithubException(msg: String) extends Exception(msg)
 
 @Singleton
 class GithubRequestsService @Inject()(ws: WSClient)
                                      (implicit nd: NetworkDispatcher) {
-    def registerWebhook(subscriber: GithubSubscriber) : Future[Option[GithubHookResponse]] = {
+    def registerWebhook(subscriber: GithubSubscriber)
+                       (implicit ghrr: Reads[GithubHookResponse]): Future[Option[GithubHookResponse]] = {
         Logger.debug("registering webhook to github")
         val data = Json.obj(
             "name" -> "web",
@@ -28,24 +27,22 @@ class GithubRequestsService @Inject()(ws: WSClient)
             )
         )
 
-        // TODO make this parsing cuter
         ws.url(formatGithubHookUrl(subscriber.username, subscriber.repository))
             .addHttpHeaders("User-Agent" -> "WS", "Authorization" -> s"token ${subscriber.token}")
             .post(data)
             .map { response: WSResponse =>
-                response.json.validate[GithubHookResponse](implicitGhr) match {
+                if(response.status != 201) {
+                    Logger.error(s"github register create webhook failed. ${response.body}")
+                    return Future.successful(None)
+                }
+
+                response.json.validate[GithubHookResponse] match {
                     case success: JsSuccess[GithubHookResponse] =>
                         Logger.debug(s"register webhook successful")
                         Some(success.get)
-                    case _: JsError =>
-                        Logger.error("github hook response parsing failed, falling back to error parse")
-                        response.json.validate[GithubErrorResponse](implicitGer) match {
-                            case success: JsSuccess[GithubErrorResponse] =>
-                                Logger.error(s"webhook register unsuccessful: ${success.get.message}")
-                            case failure: JsError =>
-                                Logger.error(s"github error respons parsing failed: ${failure.errors.mkString(",")}")
-                        }
-                        None
+                    case err: JsError =>
+                        Logger.error("github hook response parsing failed")
+                        throw GithubException(s"hook response failed: ${err.errors.mkString}")
                 }
             }
     }
@@ -57,6 +54,11 @@ class GithubRequestsService @Inject()(ws: WSClient)
             .addHttpHeaders("Authorization" -> s"token ${subscriber.token}")
             .get()
             .map { response: WSResponse =>
+                if(response.status != 200) {
+                    Logger.error(s"download zipball failed ${response.body}")
+                    throw GithubException("download zipball failed")
+                }
+
                 response.bodyAsBytes.toByteBuffer.array()
             }
     }

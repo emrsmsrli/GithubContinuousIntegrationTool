@@ -6,11 +6,10 @@ import play.api.Logger
 import repositories.models.GithubPush
 import anorm._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @Singleton
-class PushRepository @Inject()(database: Database)
-                              (implicit ec: ExecutionContext) {
+class PushRepository @Inject()(database: Database) {
     def insertPush(githubPush: GithubPush): Future[Option[Long]] = {
         database.withConnection { implicit c =>
             Logger.debug(s"inserting push $githubPush")
